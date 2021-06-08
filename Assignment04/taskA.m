@@ -1,4 +1,4 @@
-function [noise_img] = taskA(filePathString)
+function [noise_img, output_img, ft_pad_img, fil_img] = taskA(filePathString)
     
     % task a
     % Read the input image taskA.png and convert it to a grayscale image (double values between 0.0 and 1.0)
@@ -10,8 +10,7 @@ function [noise_img] = taskA(filePathString)
     V = 0.01;
     noise_img = imnoise(gray_img, 'gaussian', M, V);
     whos noise_img;
-    figure; subplot(1, 5, 1); imshow(noise_img); title('Noised Image');
-
+    
     % task c
     
     % gaussian filter
@@ -29,31 +28,34 @@ function [noise_img] = taskA(filePathString)
     Kernel = Kernel / sum(Kernel(:))
     
     %Initialize
-    Output=zeros(size(noise_img));
+    output_img=zeros(size(noise_img));
+    
     %Pad the vector with zeros
-    noise_img = padarray(noise_img,[sz sz]);
+    padded_noise_img = padarray(noise_img,[sz sz]);
 
     %Convolution
     for i = 1:size(noise_img,1)-M
         for j =1:size(noise_img,2)-N
-            Temp = noise_img(i:i+M,j:j+M).*Kernel;
-            Output(i,j)=sum(Temp(:));
+            temp = noise_img(i:i+M,j:j+M).*Kernel;
+            output_img(i,j)=sum(temp(:));
         end
-    end
-    %Image without Noise after Gaussian blur
+    end    
     
-    figure,imshow(Output);
+    g = fspecial('gaussian', size(padded_noise_img), 10);
+      
+    ft_img = fft2(noise_img);
+    size(ft_img)
+    ft_pad_img = fft2(padded_noise_img);
+    size(ft_pad_img)
+%    fil_img = ft_img .* ft_pad_img;
     
+    figure('name', 'ft_img'), imshow(ft_img);
+    figure('name', 'ft_pad_img'), imshow(ft_pad_img);
     
+%    fil_img = ifft2(fil_ft);
     
-    g = fspecial('gaussian', size(noise_img), 10);
-    
-    
-    FT = fft2(noise_img);
-    FT_Centred = fftshift(FT); 
-    
-    noise_img = imnoise(gray_img, 'gaussian', 0, 0.01);
-    
+    % ft_Centred = fftshift(ft_img); 
+        
     %FFT:
     % F(u,v) = 1/M*N SUM(0,M-1)SUM(0,N-1) f(x,y)*e^(j*2*pi*(u*x/M + l*y/N))
     % for every u, v
@@ -65,9 +67,7 @@ function [noise_img] = taskA(filePathString)
     %log
     
     %apply Gauss2D Filter
-    sigma = 0; % Just a dummy variable;
-    gauss2dFilter(noise_img, sigma);
-    
+   
 
 end
 

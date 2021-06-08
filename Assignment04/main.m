@@ -4,9 +4,14 @@ function  main()
 
   pkg load image;
   
-  [noise_img] = taskA('img/taskA.png');
+  [noise_img, gaussian_img] = taskA('img/taskA.png');
   
-  taskAImage = loadAndConvert('img/taskA.png');
+  %figure; subplot(1, 5, 1); imshow(noise_img); title('Noised Image');
+  
+   
+  
+  %Image without Noise after Gaussian blur
+  figure('name', 'Gaussian filter'), imshow(gaussian_img);
   
   gray_image = loadAndConvert('img/trainB.png');
 %  test1 = loadAndConvert('img/test1B.jpg');
