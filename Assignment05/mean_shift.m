@@ -12,9 +12,9 @@ function [image] = mean_shift(I)
     % Note: We are not able to complete the algorithm, however please have a look at our rationale by the comments below for our logical thining process
     
     % build feature space based on R G B
-    % R | G | B | label
-    cc = zeros(size(I,1) ,1);
-    data_points = [I(:, 1:3), cc];
+    % R | G | B | X | Y
+    
+    data_points = I;
 
     whos data_points
     
@@ -35,86 +35,109 @@ function [image] = mean_shift(I)
     window_size = 0.2; 
     
     % Sampling window number 
-    sample_size = 100;
-    
-    % Threshhold for convegence
-    threshhold = 0.05;
-      
-      
+    sample_size = 5;
+        
+    % initialize centroids and its window
     % based on the visualization of detected groups in feature space, either we manually assign local sample data points to save the cost of the operation or randonly assign the data point value
     
-%    centroid_list = [0.2 0.2 0.2; 0.4 0.4 0.4; 0.6 0.6 0.6; 0.8 0.8 0.8;  ]; % manually assign
+    center_list = [0.2 0.2 0.2; 0.4 0.4 0.4; 0.6 0.6 0.6; 0.8 0.8 0.8;  ]; % manually assign
     
-    for i = 1:20 % randonly assign
-        
-        max = size(data_points,1);
-        r = randi([1,max],1);
-        center_list(i,1) = data_points(r,1);
-        center_list(i,2) = data_points(r,2);
-        center_list(i,3) = data_points(r,3);
-        
-    end
+%    for i = 1:sample_size % randonly assign
+%        
+%        max = size(data_points,1);
+%        r = randi([1,max],1);
+%        center_list(i,1) = data_points(r,1);
+%        center_list(i,2) = data_points(r,2);
+%        center_list(i,3) = data_points(r,3);
+%        
+%    end
     
-    % initialize window
-
-    old_center_list = center_list
     for i = 1 : size (center_list, 1) % first loop for each data point to find its mode
         
-        weightXYZ = zeros(1, 3); % create 1 by 3 matrix to store the weight of data points within the window
-        nm_dps = 0; % number of data points within the window
-        dpsIndex_inside = [];
-        
-        % we need a while loop as a condition for convegence
+        % have a while loop to determine the convergence meets the condition
+        % For each iteration, we find the centroid of all the points in the window, shift the window accordingly, and repeat. However, after a sufficient number of steps, the position of the centroid of all the points, and the current location of the window will coincide 
+        while 1
             
-        old_centroid = data_points(i, :); % current data point as a centroid
-        
-        for j = 1 : size (data_points, 1) % the second loop to find all the data points within the window
-        
-            window_center = center_list(i, :); %window center
-            possible_dp = data_points(j, 1:3); %possible data point
-        
-            distance = calculate_distance(possible_dp, window_center); % debug
-        
-            if (distance < window_size)
-                
-%            
-                weightXYZ =  weightXYZ + possible_dp;
-                nm_dps = nm_dps + 1;
-                
+            % find all the data points within the window
+            weightXYZ = zeros(1, 3); % create 1 by 3 matrix to store the weight of data points within the window
+            nm_dps = 0; % number of data points within the window
             
-            end %end if  
+        
+            for j = 1 : size (data_points, 1) % the second loop to find all the data points within the window
+        
+                window_center = center_list(i, :); %window center
+                possible_dp = data_points(j, 1:3); %possible data point
+        
+                distance = calculate_distance(possible_dp, window_center); % debug
+        
+                if (distance < window_size)
+                
+                    weightXYZ =  weightXYZ + possible_dp;
+                    nm_dps = nm_dps + 1;
+                
+                end %end if  
          
-        end % end second loop
+            end % end second loop
+        
+            % each iteration in while loop would shift window towards local density maximum for each centroid in the center list 
+            % compute the mean
+            new_centroid = weightXYZ / nm_dps;
     
-        % compute the mean
-        new_centroid = weightXYZ / nm_dps;
-    
-        % shift the window
-        center_list(i, 1:3) = new_centroid;
-            
+            % whether or not to shift the window or convrgence occur
+            if isequal(new_centroid, center_list(i, 1:3))
+                
+                break
+                disp('break while loop')
+   
+            end
+        
+            % shift the window
+            center_list(i, 1:3) = new_centroid;
+             
+        end % end while
+                  
     end % end first loop
     
-    % merge centroids:
+    % merge centroids: remove duplicate element in the center list
+    final_centroid_list = unique( center_list,'rows')
     
-    new_center_list = zeros(1:20,3)
-    for i = 1:20
-        new_center_list(i,:) = center_list(i,:)
+    % assign the centroid value to each data points
+    for n = 1 : size(data_points, 1)
         
-        for j = 1:20
-           
+        distance_first = calculate_distance(data_points(n, 1:3), final_centroid_list(1,:));
+        distance_second = calculate_distance(data_points(n, 1:3), final_centroid_list(2,:));
+        
+        if distance_first > distance_second
+            
+            data_points(n, 1:3) = final_centroid_list(2,:)
+            
+        else
+            data_points(n, 1:3) = final_centroid_list(1,:)
+            
         end
+        
     end
     
+    image = zeros(600,600,3);
+   
     
-    center_list
+    for i = 1:size(data_points,1)
+        
+        image(data_points(i,4),data_points(i,5),1) = data_points(i, 1);
+        image(data_points(i,4),data_points(i,5),2) = data_points(i, 2);
+        image(data_points(i,4),data_points(i,5),3) = data_points(i, 3);
+    end
+
+    
     image = data_points;
     
     % visualise the feature space after mean shift 
     subplot(1, 2, 2); 
+    scatter3(data_points(:, 1), data_points(:, 2), data_points(:, 3), 12, data_points(:, 1 : 3));
     title("feature space after mean shift");
         
   
-end % end function
+end % end mean_shift function
 
 function [distance] = calculate_distance(A,B)
   result = B-A;

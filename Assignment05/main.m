@@ -20,6 +20,10 @@ function  main()
     saveImage (out_imgA, 'task_A_img_4')
 
     %Task B
+
+    output = mean_shift(image);
+    saveImage (output, 'task_B_input2')
+
     %mean_shift(image);
 
 end
